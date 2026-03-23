@@ -15,14 +15,10 @@ interface TranscriptEntry {
   id: string;
 }
 
-const AGENT_ID_KEY = "elevenlabs_agent_id";
-
 const Chat = () => {
   const navigate = useNavigate();
   const companionName = localStorage.getItem("companion_name") || "Companion";
   const companionVoice = localStorage.getItem("companion_voice") || "21m00Tcm4TlvDq8ikWAM";
-  const [agentId, setAgentId] = useState(() => localStorage.getItem(AGENT_ID_KEY) || "");
-  const [showAgentInput, setShowAgentInput] = useState(!agentId);
 
   const [cards, setCards] = useState<NewsCardData[]>([]);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
