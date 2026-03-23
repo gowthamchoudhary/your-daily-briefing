@@ -62,8 +62,7 @@ const Chat = () => {
       await navigator.mediaDevices.getUserMedia({ audio: true });
 
       const { data, error } = await supabase.functions.invoke(
-        "elevenlabs-signed-url",
-        { body: { agentId } }
+        "elevenlabs-signed-url"
       );
 
       if (error || !data?.signed_url) {
