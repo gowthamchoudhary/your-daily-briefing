@@ -15,14 +15,10 @@ interface TranscriptEntry {
   id: string;
 }
 
-const AGENT_ID_KEY = "elevenlabs_agent_id";
-
 const Chat = () => {
   const navigate = useNavigate();
   const companionName = localStorage.getItem("companion_name") || "Companion";
   const companionVoice = localStorage.getItem("companion_voice") || "21m00Tcm4TlvDq8ikWAM";
-  const [agentId, setAgentId] = useState(() => localStorage.getItem(AGENT_ID_KEY) || "");
-  const [showAgentInput, setShowAgentInput] = useState(!agentId);
 
   const [cards, setCards] = useState<NewsCardData[]>([]);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
@@ -61,18 +57,12 @@ const Chat = () => {
   });
 
   const startConversation = useCallback(async () => {
-    if (!agentId) {
-      setShowAgentInput(true);
-      return;
-    }
-
     setIsConnecting(true);
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
 
       const { data, error } = await supabase.functions.invoke(
-        "elevenlabs-signed-url",
-        { body: { agentId } }
+        "elevenlabs-signed-url"
       );
 
       if (error || !data?.signed_url) {
@@ -95,18 +85,11 @@ const Chat = () => {
     } finally {
       setIsConnecting(false);
     }
-  }, [conversation, agentId, companionName, companionVoice]);
+  }, [conversation, companionName, companionVoice]);
 
   const stopConversation = useCallback(async () => {
     await conversation.endSession();
   }, [conversation]);
-
-  const handleAgentIdSubmit = () => {
-    if (agentId.trim()) {
-      localStorage.setItem(AGENT_ID_KEY, agentId.trim());
-      setShowAgentInput(false);
-    }
-  };
 
   const isConnected = conversation.status === "connected";
 
@@ -127,34 +110,6 @@ const Chat = () => {
         <h2 className="font-display font-semibold text-lg">{companionName}</h2>
         <div className="w-16" />
       </header>
-
-      {/* Agent ID prompt */}
-      <AnimatePresence>
-        {showAgentInput && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="relative z-20 mx-auto w-full max-w-md px-5 mb-4"
-          >
-            <div className="glass-card p-4 space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Enter your ElevenLabs Agent ID to get started:
-              </p>
-              <input
-                value={agentId}
-                onChange={(e) => setAgentId(e.target.value)}
-                placeholder="Agent ID from ElevenLabs dashboard"
-                className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                onKeyDown={(e) => e.key === "Enter" && handleAgentIdSubmit()}
-              />
-              <Button onClick={handleAgentIdSubmit} size="sm" className="w-full">
-                Save & Continue
-              </Button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Main content */}
       <div className="relative z-10 flex-1 flex flex-col lg:flex-row gap-4 px-5 pb-5">
