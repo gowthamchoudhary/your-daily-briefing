@@ -85,7 +85,7 @@ const Chat = () => {
     } finally {
       setIsConnecting(false);
     }
-  }, [conversation, agentId, companionName, companionVoice]);
+  }, [conversation, companionName, companionVoice]);
 
   const stopConversation = useCallback(async () => {
     await conversation.endSession();
