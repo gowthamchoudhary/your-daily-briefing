@@ -57,11 +57,6 @@ const Chat = () => {
   });
 
   const startConversation = useCallback(async () => {
-    if (!agentId) {
-      setShowAgentInput(true);
-      return;
-    }
-
     setIsConnecting(true);
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
