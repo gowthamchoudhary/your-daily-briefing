@@ -91,13 +91,6 @@ const Chat = () => {
     await conversation.endSession();
   }, [conversation]);
 
-  const handleAgentIdSubmit = () => {
-    if (agentId.trim()) {
-      localStorage.setItem(AGENT_ID_KEY, agentId.trim());
-      setShowAgentInput(false);
-    }
-  };
-
   const isConnected = conversation.status === "connected";
 
   return (
@@ -117,34 +110,6 @@ const Chat = () => {
         <h2 className="font-display font-semibold text-lg">{companionName}</h2>
         <div className="w-16" />
       </header>
-
-      {/* Agent ID prompt */}
-      <AnimatePresence>
-        {showAgentInput && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="relative z-20 mx-auto w-full max-w-md px-5 mb-4"
-          >
-            <div className="glass-card p-4 space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Enter your ElevenLabs Agent ID to get started:
-              </p>
-              <input
-                value={agentId}
-                onChange={(e) => setAgentId(e.target.value)}
-                placeholder="Agent ID from ElevenLabs dashboard"
-                className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                onKeyDown={(e) => e.key === "Enter" && handleAgentIdSubmit()}
-              />
-              <Button onClick={handleAgentIdSubmit} size="sm" className="w-full">
-                Save & Continue
-              </Button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Main content */}
       <div className="relative z-10 flex-1 flex flex-col lg:flex-row gap-4 px-5 pb-5">
