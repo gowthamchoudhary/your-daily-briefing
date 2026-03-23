@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
       url: item.url || '',
       description: item.description || item.markdown?.slice(0, 200) || '',
       source: item.url ? new URL(item.url).hostname.replace('www.', '') : 'Unknown',
+      image: item.metadata?.ogImage || item.metadata?.image || '',
     }));
 
     const textSummary = results
