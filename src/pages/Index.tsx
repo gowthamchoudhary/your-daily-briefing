@@ -13,20 +13,36 @@ const VOICES = [
   { id: "MF3mGyEYCl7XYWbV9V9", name: "Elli", desc: "Clear & energetic" },
 ];
 
+const INTERESTS = [
+  "Technology", "Business", "Politics", "Sports", "Entertainment",
+  "Science", "Health", "Finance", "Gaming", "AI & ML",
+  "Crypto", "World News", "Climate", "Space", "Culture",
+];
+
 const Index = () => {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [selectedVoice, setSelectedVoice] = useState(VOICES[0].id);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+
+  const toggleInterest = (interest: string) => {
+    setSelectedInterests((prev) =>
+      prev.includes(interest)
+        ? prev.filter((i) => i !== interest)
+        : [...prev, interest]
+    );
+  };
 
   const handleStart = () => {
-    if (!name.trim()) return;
+    if (!name.trim() || selectedInterests.length === 0) return;
     localStorage.setItem("companion_name", name.trim());
     localStorage.setItem("companion_voice", selectedVoice);
+    localStorage.setItem("companion_interests", JSON.stringify(selectedInterests));
     navigate("/chat");
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden py-10">
       {/* Background gradient orb */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-gradient-to-br from-primary/20 via-accent/10 to-transparent blur-3xl pointer-events-none" />
 
@@ -64,8 +80,38 @@ const Index = () => {
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Nova, Atlas, Echo..."
             className="bg-secondary border-border h-12 text-base"
-            onKeyDown={(e) => e.key === "Enter" && handleStart()}
           />
+        </div>
+
+        {/* Interest selection */}
+        <div className="space-y-3">
+          <label className="text-sm font-medium text-muted-foreground">
+            Pick your interests
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {INTERESTS.map((interest) => {
+              const isSelected = selectedInterests.includes(interest);
+              return (
+                <motion.button
+                  key={interest}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => toggleInterest(interest)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                    isSelected
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-secondary/50 text-muted-foreground border-border hover:border-muted-foreground/40"
+                  }`}
+                >
+                  {interest}
+                </motion.button>
+              );
+            })}
+          </div>
+          {selectedInterests.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {selectedInterests.length} selected
+            </p>
+          )}
         </div>
 
         {/* Voice selection */}
@@ -107,7 +153,7 @@ const Index = () => {
         {/* CTA */}
         <Button
           onClick={handleStart}
-          disabled={!name.trim()}
+          disabled={!name.trim() || selectedInterests.length === 0}
           className="w-full h-12 text-base font-display font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
         >
           Meet {name.trim() || "your companion"}

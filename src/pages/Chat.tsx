@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useConversation } from "@elevenlabs/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ConversationOrb from "@/components/ConversationOrb";
 import NewsCard, { type NewsCardData } from "@/components/NewsCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useNewsLoader } from "@/hooks/useNewsLoader";
 
 interface TranscriptEntry {
   role: "user" | "agent";
@@ -19,10 +20,21 @@ const Chat = () => {
   const navigate = useNavigate();
   const companionName = localStorage.getItem("companion_name") || "Companion";
   const companionVoice = localStorage.getItem("companion_voice") || "21m00Tcm4TlvDq8ikWAM";
+  const interests = JSON.parse(localStorage.getItem("companion_interests") || "[]") as string[];
 
   const [cards, setCards] = useState<NewsCardData[]>([]);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [isConnecting, setIsConnecting] = useState(false);
+  const hasAutoStarted = useRef(false);
+
+  const { initialCards, isLoading: isLoadingNews } = useNewsLoader();
+
+  // Merge initial cards when loaded
+  useEffect(() => {
+    if (initialCards.length > 0) {
+      setCards((prev) => [...initialCards, ...prev]);
+    }
+  }, [initialCards]);
 
   const conversation = useConversation({
     clientTools: {
@@ -69,11 +81,15 @@ const Chat = () => {
         throw new Error(error?.message || "Failed to get signed URL");
       }
 
+      const interestsContext = interests.length > 0
+        ? `The user is interested in: ${interests.join(", ")}.`
+        : "";
+
       await conversation.startSession({
         signedUrl: data.signed_url,
         overrides: {
           agent: {
-            firstMessage: `${companionName} is ready. What do you want to know today?`,
+            firstMessage: `Hey! ${companionName} here. ${interestsContext} I've pulled up some headlines for you. Want me to walk you through what's happening?`,
           },
           tts: {
             voiceId: companionVoice,
@@ -85,23 +101,33 @@ const Chat = () => {
     } finally {
       setIsConnecting(false);
     }
-  }, [conversation, companionName, companionVoice]);
+  }, [conversation, companionName, companionVoice, interests]);
 
   const stopConversation = useCallback(async () => {
     await conversation.endSession();
   }, [conversation]);
 
+  // Auto-start conversation on mount
+  useEffect(() => {
+    if (!hasAutoStarted.current) {
+      hasAutoStarted.current = true;
+      startConversation();
+    }
+  }, [startConversation]);
+
   const isConnected = conversation.status === "connected";
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
-      {/* Background */}
       <div className="fixed inset-0 bg-gradient-to-b from-background via-background to-secondary/20 pointer-events-none" />
 
       {/* Header */}
       <header className="relative z-10 flex items-center justify-between px-5 py-4">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => {
+            if (isConnected) stopConversation();
+            navigate("/");
+          }}
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -120,7 +146,6 @@ const Chat = () => {
             status={isConnecting ? "connecting" : conversation.status}
           />
 
-          {/* Status text */}
           <p className="text-sm text-muted-foreground font-medium">
             {isConnecting
               ? "Connecting..."
@@ -131,7 +156,6 @@ const Chat = () => {
               : "Ready to talk"}
           </p>
 
-          {/* Mic button */}
           <Button
             onClick={isConnected ? stopConversation : startConversation}
             disabled={isConnecting}
@@ -149,7 +173,6 @@ const Chat = () => {
             )}
           </Button>
 
-          {/* Transcript */}
           {transcript.length > 0 && (
             <ScrollArea className="w-full max-w-lg max-h-48 mt-4">
               <div className="space-y-3 px-1">
@@ -177,7 +200,7 @@ const Chat = () => {
 
         {/* Right: News Cards */}
         <AnimatePresence>
-          {cards.length > 0 && (
+          {(cards.length > 0 || isLoadingNews) && (
             <motion.div
               initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
@@ -186,7 +209,7 @@ const Chat = () => {
               <ScrollArea className="h-[calc(100vh-140px)]">
                 <div className="space-y-3 pr-2">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">
-                    Live Results
+                    {isLoadingNews ? "Loading your feed..." : "Your Feed"}
                   </h3>
                   {cards.map((card, i) => (
                     <NewsCard key={`${card.url}-${i}`} card={card} index={i} />
