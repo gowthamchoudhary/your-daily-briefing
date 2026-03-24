@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Mic, Volume2 } from "lucide-react";
 
 const VOICES = [
@@ -21,9 +22,10 @@ const INTERESTS = [
 
 const Index = () => {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
+  const [userName, setUserName] = useState("");
   const [selectedVoice, setSelectedVoice] = useState(VOICES[0].id);
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [interestDetails, setInterestDetails] = useState("");
 
   const toggleInterest = (interest: string) => {
     setSelectedInterests((prev) =>
@@ -34,10 +36,18 @@ const Index = () => {
   };
 
   const handleStart = () => {
-    if (!name.trim() || selectedInterests.length === 0) return;
-    localStorage.setItem("companion_name", name.trim());
+    const typedInterest = interestDetails.trim();
+    const hasInterestInput = selectedInterests.length > 0 || typedInterest.length > 0;
+
+    if (!userName.trim() || !hasInterestInput) return;
+
+    const storedInterests = typedInterest
+      ? [...selectedInterests, typedInterest]
+      : selectedInterests;
+
+    localStorage.setItem("user_name", userName.trim());
     localStorage.setItem("companion_voice", selectedVoice);
-    localStorage.setItem("companion_interests", JSON.stringify(selectedInterests));
+    localStorage.setItem("companion_interests", JSON.stringify(storedInterests));
     navigate("/chat");
   };
 
@@ -73,12 +83,12 @@ const Index = () => {
         {/* Name input */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-muted-foreground">
-            Name your companion
+            Your name
           </label>
           <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Nova, Atlas, Echo..."
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
+            placeholder="e.g. Jesudas"
             className="bg-secondary border-border h-12 text-base"
           />
         </div>
@@ -86,7 +96,7 @@ const Index = () => {
         {/* Interest selection */}
         <div className="space-y-3">
           <label className="text-sm font-medium text-muted-foreground">
-            Pick your interests
+            Pick your interests or enter them below
           </label>
           <div className="flex flex-wrap gap-2">
             {INTERESTS.map((interest) => {
@@ -107,9 +117,17 @@ const Index = () => {
               );
             })}
           </div>
-          {selectedInterests.length > 0 && (
+          <Textarea
+            value={interestDetails}
+            onChange={(e) => setInterestDetails(e.target.value)}
+            placeholder="Type detailed interests if you don't want to select from the list..."
+            className="min-h-[100px] bg-secondary border-border text-sm"
+          />
+          {(selectedInterests.length > 0 || interestDetails.trim()) && (
             <p className="text-xs text-muted-foreground">
-              {selectedInterests.length} selected
+              {selectedInterests.length > 0
+                ? `${selectedInterests.length} selected`
+                : "Using your typed interests"}
             </p>
           )}
         </div>
@@ -153,10 +171,10 @@ const Index = () => {
         {/* CTA */}
         <Button
           onClick={handleStart}
-          disabled={!name.trim() || selectedInterests.length === 0}
+          disabled={!userName.trim() || (!selectedInterests.length && !interestDetails.trim())}
           className="w-full h-12 text-base font-display font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
         >
-          Meet {name.trim() || "your companion"}
+          Continue
         </Button>
       </motion.div>
     </div>
