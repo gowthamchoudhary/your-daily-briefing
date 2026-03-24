@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import ConversationOrb from "@/components/ConversationOrb";
 import NewsCard, { type NewsCardData } from "@/components/NewsCard";
+import ContentCategoryBar from "@/components/ContentCategoryBar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNewsLoader } from "@/hooks/useNewsLoader";
 
@@ -22,19 +23,11 @@ const Chat = () => {
   const companionVoice = localStorage.getItem("companion_voice") || "21m00Tcm4TlvDq8ikWAM";
   const interests = JSON.parse(localStorage.getItem("companion_interests") || "[]") as string[];
 
-  const [cards, setCards] = useState<NewsCardData[]>([]);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [isConnecting, setIsConnecting] = useState(false);
   const hasAutoStarted = useRef(false);
 
-  const { initialCards, isLoading: isLoadingNews } = useNewsLoader();
-
-  // Merge initial cards when loaded
-  useEffect(() => {
-    if (initialCards.length > 0) {
-      setCards((prev) => [...initialCards, ...prev]);
-    }
-  }, [initialCards]);
+  const { cards, setCards, isLoading: isLoadingNews, activeCategory, fetchCategory } = useNewsLoader();
 
   const conversation = useConversation({
     clientTools: {
@@ -89,7 +82,7 @@ const Chat = () => {
         signedUrl: data.signed_url,
         overrides: {
           agent: {
-            firstMessage: `Hey! ${companionName} here. ${interestsContext} I've pulled up some headlines for you. Want me to walk you through what's happening?`,
+            firstMessage: `Hey ${companionName}! Just got the latest news for you. ${interestsContext} Let me walk you through what's trending right now.`,
           },
           tts: {
             voiceId: companionVoice,
@@ -198,27 +191,40 @@ const Chat = () => {
           )}
         </div>
 
-        {/* Right: News Cards */}
-        <AnimatePresence>
-          {(cards.length > 0 || isLoadingNews) && (
-            <motion.div
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="lg:w-96 w-full"
-            >
-              <ScrollArea className="h-[calc(100vh-140px)]">
-                <div className="space-y-3 pr-2">
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">
-                    {isLoadingNews ? "Loading your feed..." : "Your Feed"}
-                  </h3>
-                  {cards.map((card, i) => (
+        {/* Right: Category Tabs + Cards */}
+        <div className="lg:w-96 w-full">
+          <div className="mb-3">
+            <ContentCategoryBar
+              active={activeCategory}
+              onSelect={fetchCategory}
+              isLoading={isLoadingNews}
+            />
+          </div>
+
+          <ScrollArea className="h-[calc(100vh-200px)]">
+            <div className="space-y-3 pr-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">
+                {isLoadingNews ? "Loading..." : `${activeCategory === "news" ? "Latest" : activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1)} Feed`}
+              </h3>
+              <AnimatePresence mode="wait">
+                {cards.length === 0 && !isLoadingNews ? (
+                  <motion.p
+                    key="empty"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-sm text-muted-foreground text-center py-8"
+                  >
+                    No results found. Try another category!
+                  </motion.p>
+                ) : (
+                  cards.map((card, i) => (
                     <NewsCard key={`${card.url}-${i}`} card={card} index={i} />
-                  ))}
-                </div>
-              </ScrollArea>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                  ))
+                )}
+              </AnimatePresence>
+            </div>
+          </ScrollArea>
+        </div>
       </div>
     </div>
   );
