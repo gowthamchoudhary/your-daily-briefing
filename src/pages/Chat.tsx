@@ -3,13 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useConversation } from "@elevenlabs/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import ConversationOrb from "@/components/ConversationOrb";
-import NewsCard, { type NewsCardData } from "@/components/NewsCard";
-import ContentCategoryBar from "@/components/ContentCategoryBar";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import NewsFeed from "@/components/NewsFeed";
 import { useNewsLoader } from "@/hooks/useNewsLoader";
+import type { NewsCardData } from "@/components/NewsCard";
 
 interface TranscriptEntry {
   role: "user" | "agent";
@@ -65,28 +63,20 @@ const Chat = () => {
     setIsConnecting(true);
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      const { data, error } = await supabase.functions.invoke(
-        "elevenlabs-signed-url"
-      );
-
+      const { data, error } = await supabase.functions.invoke("elevenlabs-signed-url");
       if (error || !data?.signed_url) {
         throw new Error(error?.message || "Failed to get signed URL");
       }
-
       const interestsContext = interests.length > 0
         ? `The user is interested in: ${interests.join(", ")}.`
         : "";
-
       await conversation.startSession({
         signedUrl: data.signed_url,
         overrides: {
           agent: {
             firstMessage: `Hey ${companionName}! Just got the latest news for you. ${interestsContext} Let me walk you through what's trending right now.`,
           },
-          tts: {
-            voiceId: companionVoice,
-          },
+          tts: { voiceId: companionVoice },
         },
       });
     } catch (err) {
@@ -100,7 +90,6 @@ const Chat = () => {
     await conversation.endSession();
   }, [conversation]);
 
-  // Auto-start conversation on mount
   useEffect(() => {
     if (!hasAutoStarted.current) {
       hasAutoStarted.current = true;
@@ -109,122 +98,81 @@ const Chat = () => {
   }, [startConversation]);
 
   const isConnected = conversation.status === "connected";
+  const lastAgent = [...transcript].reverse().find((e) => e.role === "agent");
 
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden">
-      <div className="fixed inset-0 bg-gradient-to-b from-background via-background to-secondary/20 pointer-events-none" />
+    <div className="min-h-screen flex flex-col relative overflow-hidden bg-background">
+      {/* Subtle gradient backdrop */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
+      </div>
 
       {/* Header */}
-      <header className="relative z-10 flex items-center justify-between px-5 py-4">
+      <header className="relative z-10 flex items-center justify-between px-4 py-3 border-b border-border/30">
         <button
           onClick={() => {
             if (isConnected) stopConversation();
             navigate("/");
           }}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Back</span>
         </button>
-        <h2 className="font-display font-semibold text-lg">{companionName}</h2>
-        <div className="w-16" />
+        <h2 className="font-display font-semibold text-base">{companionName}</h2>
+        <div className="w-8" />
       </header>
 
-      {/* Main content */}
-      <div className="relative z-10 flex-1 flex flex-col lg:flex-row gap-4 px-5 pb-5">
-        {/* Left: Orb + Controls + Transcript */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-6">
-          <ConversationOrb
-            isSpeaking={conversation.isSpeaking}
-            status={isConnecting ? "connecting" : conversation.status}
-          />
+      {/* Compact orb + status strip */}
+      <div className="relative z-10 flex items-center gap-4 px-4 py-3">
+        <div className="flex-shrink-0">
+          <div className="w-14 h-14">
+            <ConversationOrb
+              isSpeaking={conversation.isSpeaking}
+              status={isConnecting ? "connecting" : conversation.status}
+            />
+          </div>
+        </div>
 
-          <p className="text-sm text-muted-foreground font-medium">
-            {isConnecting
-              ? "Connecting..."
-              : isConnected
-              ? conversation.isSpeaking
-                ? `${companionName} is speaking...`
-                : "Listening..."
-              : "Ready to talk"}
-          </p>
-
-          <Button
-            onClick={isConnected ? stopConversation : startConversation}
-            disabled={isConnecting}
-            size="lg"
-            className={`rounded-full w-16 h-16 ${
-              isConnected
-                ? "bg-destructive hover:bg-destructive/80"
-                : "bg-primary hover:bg-primary/80"
-            }`}
-          >
-            {isConnected ? (
-              <MicOff className="w-6 h-6" />
-            ) : (
-              <Mic className="w-6 h-6" />
-            )}
-          </Button>
-
-          {transcript.length > 0 && (
-            <ScrollArea className="w-full max-w-lg max-h-48 mt-4">
-              <div className="space-y-3 px-1">
-                {transcript.slice(-6).map((entry) => (
-                  <motion.div
-                    key={entry.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`text-sm ${
-                      entry.role === "user"
-                        ? "text-muted-foreground"
-                        : "text-foreground"
-                    }`}
-                  >
-                    <span className="text-xs font-medium text-primary mr-2">
-                      {entry.role === "user" ? "You" : companionName}
-                    </span>
-                    {entry.text}
-                  </motion.div>
-                ))}
-              </div>
-            </ScrollArea>
+        <div className="flex-1 min-w-0">
+          {lastAgent ? (
+            <motion.p
+              key={lastAgent.id}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-sm text-foreground/90 line-clamp-2 leading-relaxed"
+            >
+              {lastAgent.text}
+            </motion.p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {isConnecting ? "Connecting..." : isConnected
+                ? conversation.isSpeaking ? "Speaking..." : "Listening..."
+                : "Tap mic to start"}
+            </p>
           )}
         </div>
 
-        {/* Right: Category Tabs + Cards */}
-        <div className="lg:w-96 w-full">
-          <div className="mb-3">
-            <ContentCategoryBar
-              active={activeCategory}
-              onSelect={fetchCategory}
-              isLoading={isLoadingNews}
-            />
-          </div>
+        <button
+          onClick={isConnected ? stopConversation : startConversation}
+          disabled={isConnecting}
+          className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+            isConnected
+              ? "bg-destructive/90 hover:bg-destructive text-destructive-foreground"
+              : "bg-primary/90 hover:bg-primary text-primary-foreground"
+          } disabled:opacity-50`}
+        >
+          {isConnected ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+        </button>
+      </div>
 
-          <ScrollArea className="h-[calc(100vh-200px)]">
-            <div className="space-y-3 pr-2">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">
-                {isLoadingNews ? "Loading..." : `${activeCategory === "news" ? "Latest" : activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1)} Feed`}
-              </h3>
-              <AnimatePresence mode="wait">
-                {cards.length === 0 && !isLoadingNews ? (
-                  <motion.p
-                    key="empty"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-sm text-muted-foreground text-center py-8"
-                  >
-                    No results found. Try another category!
-                  </motion.p>
-                ) : (
-                  cards.map((card, i) => (
-                    <NewsCard key={`${card.url}-${i}`} card={card} index={i} />
-                  ))
-                )}
-              </AnimatePresence>
-            </div>
-          </ScrollArea>
-        </div>
+      {/* News Feed - takes remaining space */}
+      <div className="relative z-10 flex-1 flex flex-col min-h-0">
+        <NewsFeed
+          cards={cards}
+          isLoading={isLoadingNews}
+          activeCategory={activeCategory}
+          onCategorySelect={fetchCategory}
+        />
       </div>
     </div>
   );
