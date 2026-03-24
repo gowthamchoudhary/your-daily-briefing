@@ -3,11 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { useConversation } from "@elevenlabs/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import ConversationOrb from "@/components/ConversationOrb";
+import NewsCard, { type NewsCardData } from "@/components/NewsCard";
+import ContentCategoryBar from "@/components/ContentCategoryBar";
 import NewsFeed from "@/components/NewsFeed";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNewsLoader } from "@/hooks/useNewsLoader";
-import type { NewsCardData } from "@/components/NewsCard";
 
 interface TranscriptEntry {
   role: "user" | "agent";
@@ -98,81 +101,97 @@ const Chat = () => {
   }, [startConversation]);
 
   const isConnected = conversation.status === "connected";
-  const lastAgent = [...transcript].reverse().find((e) => e.role === "agent");
 
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden bg-background">
-      {/* Subtle gradient backdrop */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
-      </div>
+    <div className="min-h-screen flex flex-col relative overflow-hidden">
+      <div className="fixed inset-0 bg-gradient-to-b from-background via-background to-secondary/20 pointer-events-none" />
 
       {/* Header */}
-      <header className="relative z-10 flex items-center justify-between px-4 py-3 border-b border-border/30">
+      <header className="relative z-10 flex items-center justify-between px-5 py-4">
         <button
           onClick={() => {
             if (isConnected) stopConversation();
             navigate("/");
           }}
-          className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
+          <span className="text-sm">Back</span>
         </button>
-        <h2 className="font-display font-semibold text-base">{companionName}</h2>
-        <div className="w-8" />
+        <h2 className="font-display font-semibold text-lg">{companionName}</h2>
+        <div className="w-16" />
       </header>
 
-      {/* Compact orb + status strip */}
-      <div className="relative z-10 flex items-center gap-4 px-4 py-3">
-        <div className="flex-shrink-0">
-          <div className="w-14 h-14">
-            <ConversationOrb
-              isSpeaking={conversation.isSpeaking}
-              status={isConnecting ? "connecting" : conversation.status}
-            />
-          </div>
-        </div>
+      {/* Main content */}
+      <div className="relative z-10 flex-1 flex flex-col lg:flex-row gap-4 px-5 pb-5">
+        {/* Left: Orb + Controls + Transcript */}
+        <div className="flex-1 flex flex-col items-center justify-center gap-6">
+          <ConversationOrb
+            isSpeaking={conversation.isSpeaking}
+            status={isConnecting ? "connecting" : conversation.status}
+          />
 
-        <div className="flex-1 min-w-0">
-          {lastAgent ? (
-            <motion.p
-              key={lastAgent.id}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-sm text-foreground/90 line-clamp-2 leading-relaxed"
-            >
-              {lastAgent.text}
-            </motion.p>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              {isConnecting ? "Connecting..." : isConnected
-                ? conversation.isSpeaking ? "Speaking..." : "Listening..."
-                : "Tap mic to start"}
-            </p>
+          <p className="text-sm text-muted-foreground font-medium">
+            {isConnecting
+              ? "Connecting..."
+              : isConnected
+              ? conversation.isSpeaking
+                ? `${companionName} is speaking...`
+                : "Listening..."
+              : "Ready to talk"}
+          </p>
+
+          <Button
+            onClick={isConnected ? stopConversation : startConversation}
+            disabled={isConnecting}
+            size="lg"
+            className={`rounded-full w-16 h-16 ${
+              isConnected
+                ? "bg-destructive hover:bg-destructive/80"
+                : "bg-primary hover:bg-primary/80"
+            }`}
+          >
+            {isConnected ? (
+              <MicOff className="w-6 h-6" />
+            ) : (
+              <Mic className="w-6 h-6" />
+            )}
+          </Button>
+
+          {transcript.length > 0 && (
+            <ScrollArea className="w-full max-w-lg max-h-48 mt-4">
+              <div className="space-y-3 px-1">
+                {transcript.slice(-6).map((entry) => (
+                  <motion.div
+                    key={entry.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`text-sm ${
+                      entry.role === "user"
+                        ? "text-muted-foreground"
+                        : "text-foreground"
+                    }`}
+                  >
+                    <span className="text-xs font-medium text-primary mr-2">
+                      {entry.role === "user" ? "You" : companionName}
+                    </span>
+                    {entry.text}
+                  </motion.div>
+                ))}
+              </div>
+            </ScrollArea>
           )}
         </div>
 
-        <button
-          onClick={isConnected ? stopConversation : startConversation}
-          disabled={isConnecting}
-          className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all ${
-            isConnected
-              ? "bg-destructive/90 hover:bg-destructive text-destructive-foreground"
-              : "bg-primary/90 hover:bg-primary text-primary-foreground"
-          } disabled:opacity-50`}
-        >
-          {isConnected ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-        </button>
-      </div>
-
-      {/* News Feed - takes remaining space */}
-      <div className="relative z-10 flex-1 flex flex-col min-h-0">
-        <NewsFeed
-          cards={cards}
-          isLoading={isLoadingNews}
-          activeCategory={activeCategory}
-          onCategorySelect={fetchCategory}
-        />
+        {/* Right: Category Tabs + Cards */}
+        <div className="lg:w-[420px] w-full">
+          <NewsFeed
+            cards={cards}
+            isLoading={isLoadingNews}
+            activeCategory={activeCategory}
+            onCategorySelect={fetchCategory}
+          />
+        </div>
       </div>
     </div>
   );
