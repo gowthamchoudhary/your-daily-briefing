@@ -18,19 +18,19 @@ interface ContentCategoryBarProps {
 
 const ContentCategoryBar = ({ active, onSelect, isLoading }: ContentCategoryBarProps) => {
   return (
-    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+    <div className="flex gap-2 overflow-x-auto no-scrollbar">
       {CATEGORIES.map(({ id, label, icon: Icon }) => {
         const isActive = active === id;
         return (
           <motion.button
             key={id}
-            whileTap={{ scale: 0.95 }}
+            whileTap={{ scale: 0.93 }}
             onClick={() => onSelect(id)}
             disabled={isLoading}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all whitespace-nowrap ${
+            className={`relative flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
               isActive
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-secondary/50 text-muted-foreground border-border hover:border-muted-foreground/40 disabled:opacity-50"
+                ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                : "bg-secondary/60 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-40"
             }`}
           >
             <Icon className="w-3.5 h-3.5" />

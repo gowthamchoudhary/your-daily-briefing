@@ -23,44 +23,49 @@ const NewsCard = ({ card, index }: NewsCardProps) => {
       href={card.url}
       target="_blank"
       rel="noopener noreferrer"
-      initial={{ opacity: 0, y: 40 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08, duration: 0.4, ease: "easeOut" }}
-      className={`block glass-card overflow-hidden hover:border-primary/40 transition-colors group ${
-        isSocial ? "border-l-2 border-l-accent" : ""
-      }`}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ delay: index * 0.05, duration: 0.3, ease: "easeOut" }}
+      className="block rounded-2xl overflow-hidden bg-card/80 border border-border/40 hover:border-primary/30 transition-all duration-200 group active:scale-[0.98]"
     >
-      {card.image && (
-        <div className="w-full h-32 overflow-hidden">
-          <img
-            src={card.image}
-            alt={card.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = "none";
-            }}
-          />
-        </div>
-      )}
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="flex items-center gap-2">
-            {isSocial ? (
-              <MessageCircle className="w-3.5 h-3.5 text-accent flex-shrink-0" />
-            ) : null}
-            <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-              {card.source}
-            </span>
+      <div className="flex gap-3 p-3">
+        {/* Image thumbnail */}
+        {card.image && (
+          <div className="flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-secondary/50">
+            <img
+              src={card.image}
+              alt={card.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+              onError={(e) => {
+                (e.target as HTMLImageElement).parentElement!.style.display = "none";
+              }}
+            />
           </div>
-          <ExternalLink className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+        )}
+
+        {/* Text content */}
+        <div className="flex-1 min-w-0 flex flex-col justify-between">
+          <div>
+            <h3 className="text-[13px] font-semibold leading-tight line-clamp-2 text-foreground mb-1">
+              {card.title}
+            </h3>
+            <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
+              {card.description}
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between mt-1.5">
+            <div className="flex items-center gap-1.5">
+              {isSocial && <MessageCircle className="w-3 h-3 text-accent" />}
+              <span className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider">
+                {card.source}
+              </span>
+            </div>
+            <ExternalLink className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+          </div>
         </div>
-        <h3 className="text-sm font-semibold leading-snug mb-1.5 line-clamp-2">
-          {card.title}
-        </h3>
-        <p className="text-xs text-muted-foreground line-clamp-2">
-          {card.description}
-        </p>
       </div>
     </motion.a>
   );
