@@ -35,7 +35,7 @@ const Index = () => {
     );
   };
 
-  const handleStart = () => {
+  const saveAndGo = (path: string) => {
     const typedInterest = interestDetails.trim();
     const hasInterestInput = selectedInterests.length > 0 || typedInterest.length > 0;
 
@@ -46,9 +46,10 @@ const Index = () => {
       : selectedInterests;
 
     localStorage.setItem("user_name", userName.trim());
+    localStorage.setItem("companion_name", userName.trim());
     localStorage.setItem("companion_voice", selectedVoice);
     localStorage.setItem("companion_interests", JSON.stringify(storedInterests));
-    navigate("/chat");
+    navigate(path);
   };
 
   return (
@@ -168,14 +169,24 @@ const Index = () => {
           </div>
         </div>
 
-        {/* CTA */}
-        <Button
-          onClick={handleStart}
-          disabled={!userName.trim() || (!selectedInterests.length && !interestDetails.trim())}
-          className="w-full h-12 text-base font-display font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
-        >
-          Continue
-        </Button>
+        {/* CTAs */}
+        <div className="space-y-3">
+          <Button
+            onClick={() => saveAndGo("/chat")}
+            disabled={!userName.trim() || (!selectedInterests.length && !interestDetails.trim())}
+            className="w-full h-12 text-base font-display font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
+          >
+            📰 News Companion
+          </Button>
+          <Button
+            onClick={() => saveAndGo("/debate")}
+            disabled={!userName.trim() || (!selectedInterests.length && !interestDetails.trim())}
+            variant="outline"
+            className="w-full h-12 text-base font-display font-semibold border-destructive/40 text-destructive hover:bg-destructive/10 transition-all"
+          >
+            ⚔️ Debate Arena
+          </Button>
+        </div>
       </motion.div>
     </div>
   );
