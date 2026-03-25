@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { query } = await req.json();
+    const { query, extractPoints } = await req.json();
     if (!query) {
       return new Response(
         JSON.stringify({ error: 'query is required' }),
@@ -52,24 +52,56 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Format results as text for the agent to speak + structured data
-    const results = (data.data || []).map((item: any) => ({
-      title: item.title || 'Untitled',
-      url: item.url || '',
-      description: item.description || item.markdown?.slice(0, 200) || '',
-      source: item.url ? new URL(item.url).hostname.replace('www.', '') : 'Unknown',
-      image: item.metadata?.ogImage || item.metadata?.image || '',
-    }));
+    const results = (data.data || []).map((item: any) => {
+      const markdown = item.markdown || '';
+      
+      // Extract key points from markdown content
+      let keyPoints: string[] = [];
+      if (extractPoints && markdown) {
+        // Extract bullet points, numbered lists, and meaningful sentences
+        const lines = markdown.split('\n').filter((l: string) => l.trim());
+        const pointLines = lines.filter((l: string) => {
+          const trimmed = l.trim();
+          // Match bullet points, numbered items, or sentences with key indicators
+          return (
+            /^[-•*]\s/.test(trimmed) ||
+            /^\d+[.)]\s/.test(trimmed) ||
+            /^#{1,3}\s/.test(trimmed)
+          );
+        });
+        
+        // Also grab strong opening sentences from paragraphs
+        const paragraphs = markdown.split('\n\n').filter((p: string) => {
+          const t = p.trim();
+          return t.length > 40 && t.length < 500 && !t.startsWith('#') && !t.startsWith('|');
+        });
+        
+        // Combine and clean
+        const allPoints = [
+          ...pointLines.map((l: string) => l.replace(/^[-•*#\d.)\s]+/, '').trim()),
+          ...paragraphs.slice(0, 3).map((p: string) => p.trim().split('.').slice(0, 2).join('.').trim()),
+        ].filter((p: string) => p.length > 20 && p.length < 400);
+        
+        // Deduplicate and limit
+        keyPoints = [...new Set(allPoints)].slice(0, 5);
+      }
+
+      return {
+        title: item.title || 'Untitled',
+        url: item.url || '',
+        description: item.description || markdown.slice(0, 200) || '',
+        source: item.url ? new URL(item.url).hostname.replace('www.', '') : 'Unknown',
+        image: item.metadata?.ogImage || item.metadata?.image || '',
+        ...(extractPoints ? { keyPoints, excerpt: markdown.slice(0, 600) } : {}),
+      };
+    });
 
     const textSummary = results
       .map((r: any, i: number) => `${i + 1}. ${r.title} (${r.source}): ${r.description}`)
       .join('\n\n');
 
     return new Response(
-      JSON.stringify({
-        results,
-        textSummary,
-      }),
+      JSON.stringify({ results, textSummary }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

@@ -7,6 +7,8 @@ export interface DebatePoint {
   url: string;
   source: string;
   side: "for" | "against";
+  keyPoints: string[];
+  excerpt: string;
 }
 
 export function useDebateResearch() {
@@ -23,10 +25,10 @@ export function useDebateResearch() {
     try {
       const [forRes, againstRes] = await Promise.all([
         supabase.functions.invoke("search-web", {
-          body: { query: `arguments supporting "${debateTopic}" evidence facts data` },
+          body: { query: `arguments supporting "${debateTopic}" evidence facts data`, extractPoints: true },
         }),
         supabase.functions.invoke("search-web", {
-          body: { query: `arguments against "${debateTopic}" criticism counterpoints evidence` },
+          body: { query: `arguments against "${debateTopic}" criticism counterpoints evidence`, extractPoints: true },
         }),
       ]);
 
@@ -38,6 +40,8 @@ export function useDebateResearch() {
             url: r.url,
             source: r.source,
             side: "for" as const,
+            keyPoints: r.keyPoints || [],
+            excerpt: r.excerpt || "",
           }))
         );
       }
@@ -50,6 +54,8 @@ export function useDebateResearch() {
             url: r.url,
             source: r.source,
             side: "against" as const,
+            keyPoints: r.keyPoints || [],
+            excerpt: r.excerpt || "",
           }))
         );
       }
