@@ -41,8 +41,21 @@ const Debate = () => {
   const [debateTopic, setDebateTopic] = useState("");
   const [topicInput, setTopicInput] = useState("");
   const [hasStarted, setHasStarted] = useState(false);
+  const prefillChecked = useRef(false);
 
   const { forPoints, againstPoints, isLoading: isResearching, topic, fetchDebatePoints } = useDebateResearch();
+
+  // Check for prefilled topic from news card
+  useEffect(() => {
+    if (!prefillChecked.current) {
+      prefillChecked.current = true;
+      const prefill = localStorage.getItem("debate_prefill_topic");
+      if (prefill) {
+        setTopicInput(prefill);
+        localStorage.removeItem("debate_prefill_topic");
+      }
+    }
+  }, []);
 
   const conversation = useConversation({
     clientTools: {
@@ -83,7 +96,6 @@ const Debate = () => {
     setDebateTopic(topicInput.trim());
     setHasStarted(true);
 
-    // Fetch research points in parallel
     fetchDebatePoints(topicInput.trim());
 
     try {
@@ -119,7 +131,9 @@ const Debate = () => {
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
-      <div className="fixed inset-0 bg-gradient-to-b from-background via-background to-destructive/5 pointer-events-none" />
+      <div className="fixed inset-0 bg-background pointer-events-none" />
+      {/* Subtle red ambient glow */}
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-destructive/8 blur-[120px] rounded-full pointer-events-none" />
 
       {/* Header */}
       <header className="relative z-10 flex items-center justify-between px-5 py-4">
@@ -133,7 +147,7 @@ const Debate = () => {
           <ArrowLeft className="w-4 h-4" />
           <span className="text-sm">Back</span>
         </button>
-        <h2 className="font-display font-semibold text-lg">⚔️ Debate Arena</h2>
+        <h2 className="font-display font-semibold text-lg text-destructive">⚔️ Debate Arena</h2>
         <div className="w-16" />
       </header>
 
@@ -145,7 +159,7 @@ const Debate = () => {
           className="relative z-10 flex-1 flex flex-col items-center justify-center gap-6 px-5 max-w-lg mx-auto w-full"
         >
           <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold font-display">Pick Your Battle</h1>
+            <h1 className="text-2xl font-bold font-display text-destructive">Pick Your Battle</h1>
             <p className="text-sm text-muted-foreground">
               Enter a topic, choose your tone, and let's debate!
             </p>
@@ -156,15 +170,13 @@ const Debate = () => {
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Debate Topic
             </label>
-            <div className="flex gap-2">
-              <Input
-                value={topicInput}
-                onChange={(e) => setTopicInput(e.target.value)}
-                placeholder="e.g. AI will replace most jobs in 10 years"
-                className="bg-secondary border-border h-11 text-sm flex-1"
-                onKeyDown={(e) => e.key === "Enter" && startDebate()}
-              />
-            </div>
+            <Input
+              value={topicInput}
+              onChange={(e) => setTopicInput(e.target.value)}
+              placeholder="e.g. AI will replace most jobs in 10 years"
+              className="bg-secondary border-border h-11 text-sm"
+              onKeyDown={(e) => e.key === "Enter" && startDebate()}
+            />
           </div>
 
           {/* Tone selection */}
@@ -179,7 +191,7 @@ const Debate = () => {
           <Button
             onClick={startDebate}
             disabled={!topicInput.trim() || isConnecting}
-            className="w-full h-12 text-base font-display font-semibold bg-gradient-to-r from-destructive to-primary hover:opacity-90"
+            className="w-full h-12 text-base font-display font-semibold bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
             {isConnecting ? "Setting up arena..." : "⚔️ Start Debate"}
           </Button>
@@ -191,7 +203,6 @@ const Debate = () => {
         <div className="relative z-10 flex-1 flex flex-col lg:flex-row gap-4 px-5 pb-5 min-h-0">
           {/* Left: Orb + Transcript + Score */}
           <div className="flex-1 flex flex-col items-center gap-4">
-            {/* Score */}
             <div className="w-full max-w-sm">
               <DebateScoreBoard
                 userScore={userScore}
@@ -200,7 +211,6 @@ const Debate = () => {
               />
             </div>
 
-            {/* Orb */}
             <ConversationOrb
               isSpeaking={conversation.isSpeaking}
               status={isConnecting ? "connecting" : conversation.status}
@@ -216,7 +226,6 @@ const Debate = () => {
                 : "Debate ended"}
             </p>
 
-            {/* Mic control */}
             <Button
               onClick={isConnected ? stopDebate : startDebate}
               disabled={isConnecting}
@@ -224,7 +233,7 @@ const Debate = () => {
               className={`rounded-full w-16 h-16 ${
                 isConnected
                   ? "bg-destructive hover:bg-destructive/80"
-                  : "bg-primary hover:bg-primary/80"
+                  : "bg-destructive/80 hover:bg-destructive"
               }`}
             >
               {isConnected ? (
@@ -234,12 +243,10 @@ const Debate = () => {
               )}
             </Button>
 
-            {/* Active tone badge */}
-            <div className="px-3 py-1 rounded-full bg-secondary/60 border border-border/40 text-[10px] text-muted-foreground uppercase tracking-wider">
+            <div className="px-3 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-[10px] text-destructive uppercase tracking-wider font-semibold">
               {tone} mode
             </div>
 
-            {/* Transcript */}
             {transcript.length > 0 && (
               <ScrollArea className="w-full max-w-lg max-h-36">
                 <div className="space-y-2 px-1">
@@ -255,7 +262,7 @@ const Debate = () => {
                       }`}
                     >
                       <span className={`text-xs font-medium mr-2 ${
-                        entry.role === "user" ? "text-primary" : "text-destructive"
+                        entry.role === "user" ? "text-green-400" : "text-destructive"
                       }`}>
                         {entry.role === "user" ? "You" : "AI"}
                       </span>
@@ -268,9 +275,9 @@ const Debate = () => {
           </div>
 
           {/* Right: Research Assistant Panel */}
-          <div className="lg:w-[380px] w-full glass-card overflow-hidden flex flex-col max-h-[calc(100vh-120px)]">
-            <div className="px-4 py-2.5 border-b border-border/20 bg-secondary/20">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+          <div className="lg:w-[380px] w-full glass-card overflow-hidden flex flex-col max-h-[calc(100vh-120px)] border-destructive/15">
+            <div className="px-4 py-2.5 border-b border-destructive/10 bg-destructive/5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-destructive flex items-center gap-1.5">
                 <Search className="w-3.5 h-3.5" />
                 Debate Assistant
               </h3>

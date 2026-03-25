@@ -15,7 +15,7 @@ const DebateScoreBoard = ({ userScore, aiScore, userName }: DebateScoreBoardProp
   const trend = userScore > aiScore ? "winning" : userScore < aiScore ? "losing" : "tied";
 
   return (
-    <div className="glass-card p-4 space-y-3">
+    <div className="glass-card p-4 space-y-3 border-destructive/20">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Debate Score
@@ -24,12 +24,12 @@ const DebateScoreBoard = ({ userScore, aiScore, userName }: DebateScoreBoardProp
           {trend === "winning" ? (
             <TrendingUp className="w-3.5 h-3.5 text-green-400" />
           ) : trend === "losing" ? (
-            <TrendingDown className="w-3.5 h-3.5 text-red-400" />
+            <TrendingDown className="w-3.5 h-3.5 text-destructive" />
           ) : (
             <Minus className="w-3.5 h-3.5 text-muted-foreground" />
           )}
           <span className={`text-[10px] font-medium ${
-            trend === "winning" ? "text-green-400" : trend === "losing" ? "text-red-400" : "text-muted-foreground"
+            trend === "winning" ? "text-green-400" : trend === "losing" ? "text-destructive" : "text-muted-foreground"
           }`}>
             {trend === "winning" ? "You're ahead!" : trend === "losing" ? "AI leads" : "It's a tie"}
           </span>
@@ -40,11 +40,11 @@ const DebateScoreBoard = ({ userScore, aiScore, userName }: DebateScoreBoardProp
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs">
           <span className="font-medium text-foreground">{userName}</span>
-          <span className="font-bold text-primary">{userScore}</span>
+          <span className="font-bold text-green-400">{userScore}</span>
         </div>
         <div className="h-2 rounded-full bg-secondary overflow-hidden">
           <motion.div
-            className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
+            className="h-full rounded-full bg-green-500"
             initial={{ width: 0 }}
             animate={{ width: `${userPct}%` }}
             transition={{ duration: 0.6, ease: "easeOut" }}
@@ -57,7 +57,7 @@ const DebateScoreBoard = ({ userScore, aiScore, userName }: DebateScoreBoardProp
         </div>
         <div className="h-2 rounded-full bg-secondary overflow-hidden">
           <motion.div
-            className="h-full rounded-full bg-gradient-to-r from-destructive/80 to-destructive"
+            className="h-full rounded-full bg-destructive"
             initial={{ width: 0 }}
             animate={{ width: `${aiPct}%` }}
             transition={{ duration: 0.6, ease: "easeOut" }}
@@ -72,7 +72,7 @@ const DebateScoreBoard = ({ userScore, aiScore, userName }: DebateScoreBoardProp
             key={round}
             className={`w-2 h-2 rounded-full transition-colors ${
               round <= Math.floor((userScore + aiScore) / 2 + 1)
-                ? "bg-primary"
+                ? "bg-destructive"
                 : "bg-secondary"
             }`}
           />

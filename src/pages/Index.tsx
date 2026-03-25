@@ -52,10 +52,11 @@ const Index = () => {
     navigate(path);
   };
 
+  const isReady = userName.trim() && (selectedInterests.length > 0 || interestDetails.trim());
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden py-10">
-      {/* Background gradient orb */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-gradient-to-br from-primary/20 via-accent/10 to-transparent blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-primary/10 blur-3xl pointer-events-none" />
 
       <motion.div
         initial={{ opacity: 0, y: 30 }}
@@ -69,7 +70,7 @@ const Index = () => {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-            className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center"
+            className="mx-auto w-16 h-16 rounded-2xl bg-primary flex items-center justify-center"
           >
             <Mic className="w-8 h-8 text-primary-foreground" />
           </motion.div>
@@ -173,16 +174,16 @@ const Index = () => {
         <div className="space-y-3">
           <Button
             onClick={() => saveAndGo("/chat")}
-            disabled={!userName.trim() || (!selectedInterests.length && !interestDetails.trim())}
-            className="w-full h-12 text-base font-display font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
+            disabled={!isReady}
+            className="w-full h-12 text-base font-display font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
           >
             📰 News Companion
           </Button>
           <Button
             onClick={() => saveAndGo("/debate")}
-            disabled={!userName.trim() || (!selectedInterests.length && !interestDetails.trim())}
+            disabled={!isReady}
             variant="outline"
-            className="w-full h-12 text-base font-display font-semibold border-destructive/40 text-destructive hover:bg-destructive/10 transition-all"
+            className="w-full h-12 text-base font-display font-semibold border-destructive/50 text-destructive bg-destructive/5 hover:bg-destructive/10 transition-all"
           >
             ⚔️ Debate Arena
           </Button>
