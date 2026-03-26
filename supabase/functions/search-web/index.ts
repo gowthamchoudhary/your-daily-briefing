@@ -3,6 +3,59 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+function extractMeaningfulPoints(markdown: string): string[] {
+  if (!markdown || markdown.length < 50) return [];
+
+  const points: string[] = [];
+
+  // Remove markdown links but keep the text: [text](url) -> text
+  const cleaned = markdown
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '') // remove images
+    .replace(/```[\s\S]*?```/g, '') // remove code blocks
+    .replace(/\|[^ \n]*\|/g, '') // remove table rows
+    .replace(/[-=]{3,}/g, '') // remove horizontal rules
+    .replace(/<[^>]+>/g, ''); // remove HTML tags
+
+  const lines = cleaned.split('\n').map(l => l.trim()).filter(Boolean);
+
+  for (const line of lines) {
+    // Skip navigation, social media, short junk
+    if (line.length < 30 || line.length > 500) continue;
+    if (/^(Skip to|Search|Menu|Home|About|Contact|Follow|Subscribe|Sign|Log|Cookie|Privacy|Terms|©|Advertisement)/i.test(line)) continue;
+    if (/^(Mobile|Desktop|App|Download|Install)/i.test(line)) continue;
+    if (/(twitter|facebook|linkedin|youtube|instagram|threads|mastodon|bluesky|bsky|reddit)\.(com|net|app)/i.test(line)) continue;
+    if (/^(Share|Tweet|Pin|Email|Print|RSS|Feed)/i.test(line)) continue;
+    if (/^\w+:[@#]/i.test(line)) continue; // "Threads:@user" patterns
+    if (/^#{4,}/.test(line)) continue; // skip deep headers (nav items)
+
+    // Clean bullet/number prefixes
+    let clean = line.replace(/^[-•*#\d.)\s]+/, '').trim();
+
+    // Must have at least 2 words and look like a sentence
+    const wordCount = clean.split(/\s+/).length;
+    if (wordCount < 5) continue;
+
+    // Skip lines that are mostly links or special chars
+    const alphaRatio = (clean.match(/[a-zA-Z]/g) || []).length / clean.length;
+    if (alphaRatio < 0.5) continue;
+
+    points.push(clean);
+  }
+
+  // Deduplicate by checking similarity
+  const unique: string[] = [];
+  for (const p of points) {
+    const isDupe = unique.some(u => {
+      const overlap = u.slice(0, 40) === p.slice(0, 40);
+      return overlap;
+    });
+    if (!isDupe) unique.push(p);
+  }
+
+  return unique.slice(0, 6);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -38,6 +91,7 @@ Deno.serve(async (req) => {
         limit: 5,
         scrapeOptions: {
           formats: ['markdown'],
+          onlyMainContent: true,
         },
       }),
     });
@@ -54,36 +108,10 @@ Deno.serve(async (req) => {
 
     const results = (data.data || []).map((item: any) => {
       const markdown = item.markdown || '';
-      
-      // Extract key points from markdown content
+
       let keyPoints: string[] = [];
       if (extractPoints && markdown) {
-        // Extract bullet points, numbered lists, and meaningful sentences
-        const lines = markdown.split('\n').filter((l: string) => l.trim());
-        const pointLines = lines.filter((l: string) => {
-          const trimmed = l.trim();
-          // Match bullet points, numbered items, or sentences with key indicators
-          return (
-            /^[-•*]\s/.test(trimmed) ||
-            /^\d+[.)]\s/.test(trimmed) ||
-            /^#{1,3}\s/.test(trimmed)
-          );
-        });
-        
-        // Also grab strong opening sentences from paragraphs
-        const paragraphs = markdown.split('\n\n').filter((p: string) => {
-          const t = p.trim();
-          return t.length > 40 && t.length < 500 && !t.startsWith('#') && !t.startsWith('|');
-        });
-        
-        // Combine and clean
-        const allPoints = [
-          ...pointLines.map((l: string) => l.replace(/^[-•*#\d.)\s]+/, '').trim()),
-          ...paragraphs.slice(0, 3).map((p: string) => p.trim().split('.').slice(0, 2).join('.').trim()),
-        ].filter((p: string) => p.length > 20 && p.length < 400);
-        
-        // Deduplicate and limit
-        keyPoints = [...new Set(allPoints)].slice(0, 5);
+        keyPoints = extractMeaningfulPoints(markdown);
       }
 
       return {
