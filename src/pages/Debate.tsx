@@ -207,6 +207,7 @@ const Debate = () => {
                 userScore={userScore}
                 aiScore={aiScore}
                 userName={userName}
+                round={round}
               />
             </div>
 
