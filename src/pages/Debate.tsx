@@ -38,6 +38,7 @@ const Debate = () => {
   const [tone, setTone] = useState<DebateTone>("calm");
   const [userScore, setUserScore] = useState(0);
   const [aiScore, setAiScore] = useState(0);
+  const [round, setRound] = useState(0);
   const [debateTopic, setDebateTopic] = useState("");
   const [topicInput, setTopicInput] = useState("");
   const [hasStarted, setHasStarted] = useState(false);
