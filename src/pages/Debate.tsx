@@ -38,6 +38,7 @@ const Debate = () => {
   const [tone, setTone] = useState<DebateTone>("calm");
   const [userScore, setUserScore] = useState(0);
   const [aiScore, setAiScore] = useState(0);
+  const [round, setRound] = useState(0);
   const [debateTopic, setDebateTopic] = useState("");
   const [topicInput, setTopicInput] = useState("");
   const [hasStarted, setHasStarted] = useState(false);
@@ -58,21 +59,17 @@ const Debate = () => {
   }, []);
 
   const conversation = useConversation({
-    clientTools: {
-      update_score: (params: { user_points: number; ai_points: number }) => {
-        setUserScore((prev) => prev + (params.user_points || 0));
-        setAiScore((prev) => prev + (params.ai_points || 0));
-        return "Score updated";
-      },
-    },
     onMessage: (message: any) => {
       if (message.type === "user_transcript") {
         const text = message.user_transcription_event?.user_transcript;
-        if (text) {
+        if (text && text.trim().length > 5) {
           setTranscript((prev) => [
             ...prev,
             { role: "user", text, id: Date.now().toString() },
           ]);
+          // Auto-score: user gets a point for each substantive message
+          setUserScore((prev) => prev + 1);
+          setRound((prev) => prev + 1);
         }
       }
       if (message.type === "agent_response") {
@@ -82,6 +79,8 @@ const Debate = () => {
             ...prev,
             { role: "agent", text, id: Date.now().toString() },
           ]);
+          // Auto-score: AI gets a point for each response
+          setAiScore((prev) => prev + 1);
         }
       }
     },
@@ -208,6 +207,7 @@ const Debate = () => {
                 userScore={userScore}
                 aiScore={aiScore}
                 userName={userName}
+                round={round}
               />
             </div>
 

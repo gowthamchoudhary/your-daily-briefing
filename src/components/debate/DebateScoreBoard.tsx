@@ -5,9 +5,10 @@ interface DebateScoreBoardProps {
   userScore: number;
   aiScore: number;
   userName: string;
+  round: number;
 }
 
-const DebateScoreBoard = ({ userScore, aiScore, userName }: DebateScoreBoardProps) => {
+const DebateScoreBoard = ({ userScore, aiScore, userName, round }: DebateScoreBoardProps) => {
   const total = userScore + aiScore || 1;
   const userPct = Math.round((userScore / total) * 100);
   const aiPct = 100 - userPct;
@@ -67,17 +68,17 @@ const DebateScoreBoard = ({ userScore, aiScore, userName }: DebateScoreBoardProp
 
       {/* Round indicator */}
       <div className="flex items-center justify-center gap-2 pt-1">
-        {[1, 2, 3, 4, 5].map((round) => (
+        {[1, 2, 3, 4, 5].map((r) => (
           <div
-            key={round}
+            key={r}
             className={`w-2 h-2 rounded-full transition-colors ${
-              round <= Math.floor((userScore + aiScore) / 2 + 1)
+              r <= Math.min(round, 5)
                 ? "bg-destructive"
                 : "bg-secondary"
             }`}
           />
         ))}
-        <span className="text-[9px] text-muted-foreground ml-1">Rounds</span>
+        <span className="text-[9px] text-muted-foreground ml-1">Round {Math.min(round, 5)}/5</span>
       </div>
     </div>
   );

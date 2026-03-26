@@ -11,6 +11,16 @@ export interface DebatePoint {
   excerpt: string;
 }
 
+function cleanKeyPoints(points: string[]): string[] {
+  return points.filter((p) => {
+    if (!p || p.length < 15 || p.length > 400) return false;
+    // Filter out social media links, nav items, and junk
+    if (/^\[.*\]\(https?:\/\/(twitter|facebook|linkedin|youtube|bsky)/.test(p)) return false;
+    if (/^(Skip to|Search|Menu|Home|About|Contact)/i.test(p)) return false;
+    return true;
+  });
+}
+
 export function useDebateResearch() {
   const [forPoints, setForPoints] = useState<DebatePoint[]>([]);
   const [againstPoints, setAgainstPoints] = useState<DebatePoint[]>([]);
@@ -21,6 +31,8 @@ export function useDebateResearch() {
     if (!debateTopic.trim()) return;
     setIsLoading(true);
     setTopic(debateTopic);
+    setForPoints([]);
+    setAgainstPoints([]);
 
     try {
       const [forRes, againstRes] = await Promise.all([
@@ -32,32 +44,39 @@ export function useDebateResearch() {
         }),
       ]);
 
+      console.log("Debate research FOR response:", forRes);
+      console.log("Debate research AGAINST response:", againstRes);
+
       if (!forRes.error && forRes.data?.results) {
         setForPoints(
           forRes.data.results.map((r: any) => ({
-            title: r.title,
-            description: r.description,
-            url: r.url,
-            source: r.source,
+            title: r.title || "Untitled",
+            description: r.description || "",
+            url: r.url || "",
+            source: r.source || "Unknown",
             side: "for" as const,
-            keyPoints: r.keyPoints || [],
+            keyPoints: cleanKeyPoints(r.keyPoints || []),
             excerpt: r.excerpt || "",
           }))
         );
+      } else {
+        console.error("FOR points error:", forRes.error);
       }
 
       if (!againstRes.error && againstRes.data?.results) {
         setAgainstPoints(
           againstRes.data.results.map((r: any) => ({
-            title: r.title,
-            description: r.description,
-            url: r.url,
-            source: r.source,
+            title: r.title || "Untitled",
+            description: r.description || "",
+            url: r.url || "",
+            source: r.source || "Unknown",
             side: "against" as const,
-            keyPoints: r.keyPoints || [],
+            keyPoints: cleanKeyPoints(r.keyPoints || []),
             excerpt: r.excerpt || "",
           }))
         );
+      } else {
+        console.error("AGAINST points error:", againstRes.error);
       }
     } catch (err) {
       console.error("Failed to fetch debate points:", err);
