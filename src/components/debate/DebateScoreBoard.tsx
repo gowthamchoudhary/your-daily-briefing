@@ -5,6 +5,7 @@ interface DebateScoreBoardProps {
   userScore: number;
   aiScore: number;
   userName: string;
+  round: number;
 }
 
 const DebateScoreBoard = ({ userScore, aiScore, userName }: DebateScoreBoardProps) => {
